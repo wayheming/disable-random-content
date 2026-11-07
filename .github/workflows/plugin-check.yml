@@ -1,0 +1,38 @@
+name: WP.org Plugin Check (PCP)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: plugin-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plugin-check:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The plugin has no build step; package it the way WordPress.org will receive it.
+      - name: Prepare plugin package
+        run: |
+          mkdir -p build/release/disable-random-content
+          rsync -a --exclude-from=.distignore --exclude=/build ./ build/release/disable-random-content/
+
+      # The plugin requires WordPress 7.2, which is not yet in the latest stable release.
+      - name: Run WP.org Plugin Check (PCP)
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ${{ github.workspace }}/build/release/disable-random-content
+          wp-version: trunk
