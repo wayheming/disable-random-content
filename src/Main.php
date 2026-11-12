@@ -52,11 +52,14 @@ final class Main {
 	}
 
 	/**
-	 * Refresh the current site's rules on ordinary activation.
+	 * Restore the disabling filter and refresh rules on ordinary activation.
 	 *
 	 * @param bool $network_wide Whether the plugin is activated for the network.
 	 */
 	public function activate( bool $network_wide ): void {
+		// The plugin file is not loaded again when reactivated in the same request.
+		add_filter( 'wp_enable_random_content_redirect', [ $this, 'disable_random_content_redirect' ], 0 );
+
 		if ( ! $network_wide ) {
 			flush_rewrite_rules( false );
 		}
